@@ -1,0 +1,84 @@
+openwrt-mt7620 安装phpems6在线考试系统,使用newifi-y1 加上一块usb 16G的U盘。
+
+# 安装u盘相关依赖
+opkg update
+opkg install kmod-usb-storage block-mount kmod-fs-ext4 kmod-nls-cp437 kmod-nls-iso8859-1 kmod-nls-utf8 kmod-usb-storage-extras kmod-scsi-core kmod-usb-core kmod-usb-ohci kmod-usb-uhci kmod-usb2 usbutils
+
+opkg install e2fsprogs fdisk cfdisk wget curl unzip
+
+# 插入U盘，格式化U盘并挂载U盘至opt目录
+cfdisk /dev/sda
+mkfs.ext4 /dev/sda1
+mkdir opt
+mount /dev/sda1 /opt
+
+# 路由器自带的128M 内存太小了，挂载512M swap
+dd if=/dev/zero of=/opt/swapfile bs=1M count=512
+mkswap /opt/swapfile
+swapon /opt/swapfile
+或者使用cfdisk时创建一个swap分区，例如/dev/sda5,mkswap /dev/sda5（然后在luci里挂载swap分区）
+
+
+# 然后在luci页面挂载/dev/sda1至opt目录,/opt/swapfile至swap
+# 重启路由器
+reboot
+
+
+
+# 安装entware环境
+cd /opt
+sh -c "$(curl -kfsSL https://raw.githubusercontent.com/xzhih/ONMP/master/lede-ent.sh)"
+reboot
+
+# 安装onmp环境
+cd /opt
+sh -c "$(curl -kfsSl https://raw.githubusercontent.com/xzhih/ONMP/master/oneclick.sh)"
+# 安装完毕后，再次运行上面的命令修改mariadb数据库密码
+reboot
+
+
+# 下载phpems6源码
+opkg update
+opkg install git-http
+cd /opt/wwwroot/default
+git clone https://github.com/syb999/phpems6.git
+chmod 777 -R phpems6
+
+# 开始导入数据库：
+
+mysql -u root -p
+
+create database phpems;
+
+use phpems;
+
+source /phpems/phpems/pe6.sql;
+
+exit;
+
+
+# 最后修改/phpems/phpems/lib/config.inc.php文件: 按照数据库相关的配置修改即可。
+
+在lib/config.inc.php文件中设置数据库参数，注意都要保存为utf8无bom形式。
+
+设置data目录、files/attach目录为可读写（777权限）
+
+然后就成功搭建了phpems在线考试系统
+
+前台地址：域名/index.php
+
+后台地址：域名/index.php?core-master
+
+默认管理员：用户名：peadmin 密码：peadmin 可以登录到后台页面->用户模块->用户管理，来修改peadmin的密码。
+
+
+
+
+
+
+
+
+
+
+
+
